@@ -40,7 +40,6 @@ function authorize(credentials, callback) {
     const { client_secret, client_id, redirect_uris } = credentials.installed;
     const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
-    // Lire le token.json
     fs.readFile(TOKEN_PATH, 'utf-8', (err, token) => {
         if (err) {
             console.log('Token non trouvé. Exécution de GET-token.js pour obtenir un nouveau token.');
