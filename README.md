@@ -1,4 +1,4 @@
-# Ecole-Direct-in-Calendar
+# Ecole-Directe-in-Calendar
 ---
 ## Synchronisation des cours Ecole Directe vers Google Calendar
 
