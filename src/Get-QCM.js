@@ -1,9 +1,10 @@
 const axios = require('axios');
 const fs = require('fs');
 const readline = require('readline');
+const path = require('path');
 
 // Charger le fichier const.json
-const config = JSON.parse(fs.readFileSyncpath.join((__dirname, 'const.json'), 'utf8'));
+const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'const.json'), 'utf-8'));
 
 // Extraire les informations d'authentification et de configuration
 const { ecoleDirecte, qcmResponses } = config;
