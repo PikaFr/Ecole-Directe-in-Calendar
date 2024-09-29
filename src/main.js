@@ -18,7 +18,7 @@ const loginData = {
 const loginUrl = 'https://api.ecoledirecte.com/v3/login.awp';
 const doubleAuthGetUrl = 'https://api.ecoledirecte.com/v3/connexion/doubleauth.awp?verbe=get';
 const doubleAuthPostUrl = 'https://api.ecoledirecte.com/v3/connexion/doubleauth.awp?verbe=post';
-const emploiDuTempsUrl = 'https://api.ecoledirecte.com/v3/E/9157/emploidutemps.awp?verbe=get';
+var emploiDuTempsUrl = '';
 
 // ID du calendrier Google
 const calendarId = config.googleCalendar.calendarId;
@@ -286,6 +286,19 @@ async function getEmploiDuTemps(auth) {
         };
 
         console.log(`Récupération des cours entre ${today} et ${futureDate}`);
+
+        // Récupérer l'ID de l'élève et vérifier son statut
+        const eleve = response.data.data.accounts.find(account => account.typeCompte === 'E'); // Trouve l'élève
+        const eleveId = eleve.id; // Récupère l'ID de l'élève
+        const eleveStatus = eleve.typeCompte; // Récupère le type de compte (ici "E" pour élève)
+
+        if (eleveStatus !== 'E') {
+            throw new Error("Le compte de l'élève n'est pas actif.");
+        }
+
+        // Construire dynamiquement l'URL de l'emploi du temps avec l'ID de l'élève
+        emploiDuTempsUrl = `https://api.ecoledirecte.com/v3/E/${eleveId}/emploidutemps.awp?verbe=get`;
+
 
         response = await axios.post(
             emploiDuTempsUrl,
