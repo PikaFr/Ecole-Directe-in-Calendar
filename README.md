@@ -151,6 +151,10 @@ Une fois le projet initialisée, suivez ces étapes pour exécuter le script :
 - Otpimisation du système de mise à jours des infirmation des cours
 - Création d'un fichier `Get-QCM.js` plus simple à utiliser
 
+## Problèmes Résolus
+- Erreur de chemin des fichier `token.json`, `const.json` et `credentials.json`
+- Erreur d'execution du code à cause d'un mauvais URL API
+
 ## Résolution des problèmes
 
 - **Erreur de connexion** : Assurez-vous que vos identifiants Ecole Directe sont corrects et que vous n'avez pas de problème de connexion sur le site lui-même.
