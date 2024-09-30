@@ -78,8 +78,6 @@ Dans le répertoire du projet, créez un fichier `const.json` et configurez-le a
     "calendarId": "VOTRE_CALENDAR_ID"
   },
   "qcmResponses": {
-    "BASE64_DE_LA_QUESTION": "REPONSE",
-   "BASE64_DE_LA_QUESTION": "REPONSE"
   },
   "settings": {
     "daysToCheck": 7
@@ -98,15 +96,18 @@ Dans le répertoire du projet, créez un fichier `const.json` et configurez-le a
 Assurez-vous que le fichier `credentials.json` obtenu lors de la création de votre projet Google Cloud est bien placé dans le répertoire du projet.
 
 ## Obtention des différentes questions QCM
-Afin d'obtenir les différentes questions QCM, il vous faudra envoyer des requetes de connection manuellement à l'aide de `Get-QCM.js`.
+Afin d'obtenir les différentes questions QCM, il vous faudra envoyer des requetes de connection à l'aide de `Get-QCM.js`.
 
-Ce code permet d'envoyer une requête de connection à Ecole Directe et vous renvoie la question QCM encodé en base64, afin d'obtennir votre liste de Question:Réponse que vous renseignerez dans `const.js`, veuillez executer ces actions :
+Ce code permet d'envoyer une requête de connection à Ecole Directe et vous renvoie la question QCM , afin d'obtennir votre liste de Question:Réponse veuillez executer ces actions :
 1. Exécutez la commande suivante :
    ```bash
    node Get-QCM.js
    ```
-   Cela vous retournera une question ainsi que les réponses proposées, avec leurs équivalents encodées en base64.
-2. Reseignez la question avec sa réponses associés, tous deux encodées en base64, dans le fichier `const.json`
+   Cela vous retournera une question ainsi que les réponses proposées.
+
+2. Retournez le numero de réponse correct, les informations seront enregistrés dans le fichier `const.json`
+
+Le code sera relancera tout seul en as d'erreur ou en cas de question déjà présente dans le fichier const.js, il s'arretera au bout de 10 executions sans nouvelles questions.
 
 > [!WARNING]
 > Vous devez répondre, à chaque execution de `Get-QCM.js`, à la question QCM en base64 dans la console, sous peine d'un blocage de votre compte Ecole Directe et la nécessité de devoir changer de mot de passe.
