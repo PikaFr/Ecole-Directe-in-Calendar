@@ -109,38 +109,21 @@ Ce code permet d'envoyer une requête de connection à Ecole Directe et vous ren
 
 Le code sera relancera tout seul en as d'erreur ou en cas de question déjà présente dans le fichier const.js, il s'arretera au bout de 10 executions sans nouvelles questions.
 
-> [!WARNING]
-> Vous devez répondre, à chaque execution de `Get-QCM.js`, à la question QCM en base64 dans la console, sous peine d'un blocage de votre compte Ecole Directe et la nécessité de devoir changer de mot de passe.
-
-## Initialisation
-
-Une fois le projet configuré, suivez ces étapes pour initier le script, cette étape est obligatoire pour le bon focntionnement du projet :
-
-1. Ouvrez un terminal dans le répertoire du projet.
-2. Exécutez la commande suivante :
-
-   ```bash
-   node Get-token.js
-   ```
-
-3. Lors de l'exécution, une fenêtre de navigateur s'ouvrira pour vous demander d'autoriser l'application à accéder à votre compte Google. Connectez-vous avec le compte Google lié à votre calendrier.
-4. Un fichier `token.json` sera crée dans votre dossier.
-
 ## Exécution
 
-Une fois le projet initialisée, suivez ces étapes pour exécuter le script :
+Suivez ces étapes pour exécuter le script :
 
 1. Ouvrez un terminal dans le répertoire du projet.
 2. Exécutez la commande suivante :
 
    ```bash
-   node main.js
+   node .\src\main.js
    ```
 
 3. Si votre code est bien configuré, votre emplois du temps devrait être importé dans votre Google Calendar pour les jours spécifiées dans `const.json`.
 
 > [!WARNING]
-> Le code doit être lancé depuis dossier `/src`, sinon des erreurs vous indiqueront que le code ne trouve pas les fichiers tels que `const.json`
+> En cas d'erreur liée au fichier `token.json`, veuillez executer la commande `node .\src\Get-token.js` afin d'executer manuellement le script d'initialisation.
 
 ## Personnalisation
 
