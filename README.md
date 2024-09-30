@@ -149,11 +149,11 @@ Une fois le projet initialisée, suivez ces étapes pour exécuter le script :
 ## En cours de développement / de résolution
 - Possible confusion des cours qui ont le même nom et les mêmes horaires
 - Otpimisation du système de mise à jours des infirmation des cours
-- Création d'un fichier `Get-QCM.js` plus simple à utiliser
 
 ## Problèmes Résolus
 - Erreur de chemin des fichier `token.json`, `const.json` et `credentials.json`
 - Erreur d'execution du code à cause d'un mauvais URL API
+- Création d'un fichier `Get-QCM.js` plus simple à utiliser
 
 ## Résolution des problèmes
 
