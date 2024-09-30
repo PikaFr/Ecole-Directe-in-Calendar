@@ -1,9 +1,10 @@
 const axios = require('axios');
 const fs = require('fs');
 const readline = require('readline');
+const path = require('path');
 
 // Charger le fichier const.json
-const config = JSON.parse(fs.readFileSyncpath.join((__dirname, 'const.json'), 'utf8'));
+const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'const.json'), 'utf-8'));
 
 // Extraire les informations d'authentification et de configuration
 const { ecoleDirecte, qcmResponses } = config;
@@ -18,11 +19,29 @@ function decodeBase64(base64String) {
     return Buffer.from(base64String, 'base64').toString('utf-8');
 }
 
-// Interface pour saisie utilisateur dans la console
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+// Fonction pour créer un nouvel objet readline à chaque redémarrage
+function createReadlineInterface() {
+    return readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+}
+
+let rl = createReadlineInterface(); // Initialisation de readline
+let successfulAttempts = 0; // Compteur d'exécutions réussies sans nouvelle question
+
+// Fonction pour redémarrer le script
+function restartScript() {
+    if (successfulAttempts >= 10) {
+        console.log("\n10 exécutions consécutives réussies sans nouvelle question. Le programme s'arrête.");
+        process.exit(0); // Arrêter le programme
+    }
+
+    console.log("\nRedémarrage du programme...\n");
+    rl.close(); // Fermer l'ancienne instance de readline
+    rl = createReadlineInterface(); // Créer une nouvelle instance
+    connectToEcoleDirecte(); // Relancer le programme
+}
 
 async function connectToEcoleDirecte() {
     try {
@@ -67,9 +86,14 @@ async function connectToEcoleDirecte() {
             const questionDecoded = decodeBase64(questionBase64);
             console.log(`Question : ${questionDecoded}`);
 
-            // Vérification si la question est dans le fichier const.json
-            if (!qcmResponses[questionBase64]) {
-                // Récupérer les propositions de réponses
+            // Si la question est dans const.json, répondre automatiquement
+            if (qcmResponses[questionBase64]) {
+                const answerBase64 = qcmResponses[questionBase64];
+                console.log("Réponse trouvée dans const.json, soumission automatique...");
+                await submitQCMResponse(token, answerBase64, questionBase64, answerBase64, true);
+            } else {
+                // Si la question n'est pas dans const.json, demander à l'utilisateur
+                successfulAttempts = 0; // Réinitialiser le compteur car il y a une nouvelle question
                 const propositionsBase64 = response.data.data.propositions;
 
                 if (!propositionsBase64 || propositionsBase64.length === 0) {
@@ -83,32 +107,32 @@ async function connectToEcoleDirecte() {
                     console.log(`${index + 1}. ${reponse}`);
                 });
 
-                rl.question("\nEntrez exactement l'une des réponses proposées : ", async (input) => {
-                    const selectedAnswer = answersDecoded.find(answer => answer === input);
+                rl.question("\nEntrez le numéro de la réponse correcte : ", async (input) => {
+                    const selectedIndex = parseInt(input) - 1;
+                    const selectedAnswer = answersDecoded[selectedIndex];
 
                     if (selectedAnswer) {
                         const answerBase64 = Buffer.from(selectedAnswer, 'utf-8').toString('base64');
-                        await submitQCMResponse(token, answerBase64);
+                        await submitQCMResponse(token, answerBase64, questionBase64, answerBase64, false);
                     } else {
-                        console.log("Réponse invalide. Veuillez relancer le programme.");
-                        rl.close();
+                        console.log("Numéro de réponse invalide. Relance du programme.");
+                        restartScript();
                     }
                 });
-            } else {
-                // Si la question est déjà connue
-                const answerBase64 = qcmResponses[questionBase64];
-                await submitQCMResponse(token, answerBase64);
             }
         } else {
             console.log("Connexion réussie sans QCM.");
+            successfulAttempts++; // Incrémenter le compteur si pas de nouvelle question
+            restartScript(); // Relancer le script automatiquement
         }
     } catch (error) {
         console.error("Erreur lors de la connexion :", error.response ? error.response.data : error.message);
+        rl.close();
     }
 }
 
 // Fonction pour soumettre la réponse au QCM
-async function submitQCMResponse(token, reponseQCM) {
+async function submitQCMResponse(token, reponseQCM, questionBase64, answerBase64, autoResponse) {
     try {
         let response = await axios.post(
             doubleAuthPostUrl,
@@ -123,13 +147,25 @@ async function submitQCMResponse(token, reponseQCM) {
 
         if (response.data.code === 200) {
             console.log("QCM correct. Connexion réussie.");
-        } else {
-            console.log("QCM incorrect. Veuillez réessayer.");
-        }
 
-        rl.close(); // Fermer l'interface readline après soumission
+            // Si la réponse n'était pas automatique et n'est pas déjà dans const.json, on enregistre la question et la réponse
+            if (!autoResponse) {
+                config.qcmResponses[questionBase64] = answerBase64;
+                fs.writeFileSync(path.join(__dirname, 'const.json'), JSON.stringify(config, null, 4), 'utf-8');
+                console.log("Question et réponse enregistrées dans const.json.");
+            }
+
+            successfulAttempts++; // Incrémenter le compteur car pas de nouvelle question
+            restartScript(); // Relancer après validation
+        } else {
+            console.log("QCM incorrect. Relance du programme...");
+            successfulAttempts = 0; // Réinitialiser le compteur si la réponse est incorrecte
+            restartScript(); // Relancer le script en cas de réponse incorrecte
+        }
     } catch (error) {
         console.error("Erreur lors de la soumission du QCM :", error.response ? error.response.data : error.message);
+        successfulAttempts = 0; // Réinitialiser le compteur en cas d'erreur
+        restartScript(); // Relancer en cas d'erreur
     }
 }
 
