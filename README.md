@@ -1,4 +1,4 @@
-# Ecole-Directe-in-Calendar
+# Edincal
 ---
 ## Synchronisation des cours Ecole Directe vers Google Calendar
 
