@@ -1,4 +1,4 @@
-# Ecole-Directe-in-Calendar
+# Edincal
 ---
 # En cours de développement / de résolution
 - Possible confusion des cours qui ont le même nom et les mêmes horaires
