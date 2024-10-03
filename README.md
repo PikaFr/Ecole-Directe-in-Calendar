@@ -131,13 +131,14 @@ Suivez ces étapes pour exécuter le script :
 - **Réponses au QCM** : Si votre compte Ecole Directe utilise la double authentification avec des questions QCM, ajoutez les paires question-réponse en base64 dans la section `qcmResponses` du fichier `const.json`.
 
 ## En cours de développement / de résolution
-- Possible confusion des cours qui ont le même nom et les mêmes horaires
-- Otpimisation du système de mise à jours des infirmation des cours
+
 
 ## Problèmes Résolus
 - Erreur de chemin des fichier `token.json`, `const.json` et `credentials.json`
 - Erreur d'execution du code à cause d'un mauvais URL API
 - Création d'un fichier `Get-QCM.js` plus simple à utiliser
+- Possible confusion des cours qui ont le même nom et les mêmes horaires
+- Otpimisation du système de mise à jours des information des cours
 
 ## Résolution des problèmes
 

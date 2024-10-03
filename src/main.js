@@ -29,11 +29,6 @@ const qcmResponses = config.qcmResponses;
 // Nombre de jours à vérifier
 const daysToCheck = config.settings.daysToCheck;
 
-// Fonction pour décoder une chaîne base64
-function decodeBase64(base64String) {
-    return Buffer.from(base64String, 'base64').toString('utf-8');
-}
-
 const TOKEN_PATH = path.join(__dirname, 'token.json');
 
 function authorize(credentials, callback) {
@@ -87,6 +82,55 @@ function normalizeDateForComparison(dateString) {
     return date.toISOString();
 }
 
+async function removeObsoleteEvents(auth, knownCourseIds) {
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    // Définir les dates de début et de fin pour la période à vérifier
+    const startDate = getFutureDate(0);
+    const endDate = getFutureDate(daysToCheck);
+
+    try {
+        const events = await calendar.events.list({
+            calendarId: calendarId,
+            timeMin: `${startDate}T00:00:00Z`,
+            timeMax: `${endDate}T23:59:59Z`,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+
+        for (const event of events.data.items) {
+            // Vérifier si l'événement a un ID de cours dans sa description
+            const eventDescription = event.description || '';
+            const idMatch = eventDescription.match(/ID: (\d+)/);
+            const eventCourseId = idMatch ? idMatch[1] : null;
+
+            if (eventCourseId) {
+                // Convertir l'ID en chaîne de caractères pour s'assurer que la comparaison est correcte
+                const eventCourseIdStr = eventCourseId.toString();
+                const knownCourseIdsStr = knownCourseIds.map(id => id.toString());
+
+                // Si l'événement a un ID et qu'il ne fait pas partie des cours connus, le supprimer
+                if (!knownCourseIdsStr.includes(eventCourseIdStr)) {
+                    console.log(`L'événement avec l'ID ${eventCourseIdStr} n'existe plus dans Ecole Directe. Suppression de l'événement.`);
+                    try {
+                        await calendar.events.delete({
+                            calendarId: calendarId,
+                            eventId: event.id,
+                        });
+                        console.log(`Événement supprimé : ${event.summary}`);
+                    } catch (err) {
+                        console.error(`Erreur lors de la suppression de l'événement : ${event.summary}`, err);
+                    }
+                }
+            } else {
+                console.log(`L'événement "${event.summary}" n'a pas d'ID de cours. Il a peut-être été ajouté manuellement, il ne sera donc pas supprimé.`);
+            }
+        }
+    } catch (err) {
+        console.error("Erreur lors de la récupération des événements dans Google Calendar :", err);
+    }
+}
+
 // Fonction pour vérifier si un cours existe déjà dans Google Calendar
 async function findExistingEvent(calendar, calendarId, course) {
     const startDateTime = formatDateToGoogleCalendar(course.start_date);
@@ -131,6 +175,35 @@ async function findExistingEvent(calendar, calendarId, course) {
     }
 }
 
+// Fonction pour vérifier si un cours existe déjà dans Google Calendar
+async function findExistingEvent(calendar, calendarId, course) {
+    const startDateTime = formatDateToGoogleCalendar(course.start_date);
+    const endDateTime = formatDateToGoogleCalendar(course.end_date);
+
+    // Utiliser l'ID du cours depuis Ecole Directe pour la comparaison
+    const courseId = course.id;
+
+    try {
+        const events = await calendar.events.list({
+            calendarId: calendarId,
+            timeMin: startDateTime,
+            timeMax: endDateTime,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+
+        // Recherche d'un événement qui correspond à l'ID du cours
+        return events.data.items.find(event => {
+            const eventDescription = event.description ? event.description.includes(`ID: ${courseId}`) : false;
+
+            // Comparer l'ID du cours avec celui de Google Calendar
+            return eventDescription;
+        });
+    } catch (err) {
+        console.error("Erreur lors de la recherche d'un événement existant :", err);
+    }
+}
+
 // Fonction pour ajouter ou mettre à jour un cours dans Google Calendar
 async function addOrUpdateCourse(auth, course) {
     const calendar = google.calendar({ version: 'v3', auth });
@@ -142,7 +215,7 @@ async function addOrUpdateCourse(auth, course) {
     const eventDetails = {
         summary: `${course.matiere}${isAnnule}`,
         location: course.salle || 'Salle non définie',
-        description: `Professeur : ${course.prof || 'Non défini'}`,
+        description: `Professeur : ${course.prof || 'Non défini'}\nID: ${course.id}`,
         start: {
             dateTime: startDateTime,
             timeZone: 'Europe/Paris',
@@ -153,12 +226,17 @@ async function addOrUpdateCourse(auth, course) {
         },
     };
 
-    // Vérifier si l'événement existe déjà (sans le tag " (Annulé)")
+    // Vérifier si l'événement existe déjà (en utilisant l'ID du cours)
     const existingEvent = await findExistingEvent(calendar, calendarId, course);
 
     if (existingEvent) {
-        // console.log(`Événement existant trouvé : ${existingEvent.summary}. Tentative de suppression.`);
-        // Supprimer l'événement existant
+        // Si l'événement existe et que le cours n'a pas été modifié, ne pas le supprimer
+        if (!course.isModifie) {
+            console.log(`Le cours "${course.matiere}" existe déjà et n'a pas été modifié. Aucune action nécessaire.`);
+            return;
+        }
+
+        // Si le cours a été modifié, on supprime l'événement existant et on le remplace par un nouveau
         try {
             await calendar.events.delete({
                 calendarId: calendarId,
@@ -314,11 +392,16 @@ async function getEmploiDuTemps(auth) {
         // console.log("Réponse de la requête 5 (emploi du temps) :", response.data);
 
         const courses = response.data.data;
+        const knownCourseIds = [];
 
         for (const course of courses) {
+            knownCourseIds.push(course.id); // Stocker l'ID du cours pour la vérification future
             console.log(`Ajout/mise à jour du cours : ${course.matiere} avec ${course.prof} de ${course.start_date} au ${course.end_date}`);
             await addOrUpdateCourse(auth, course);
         }
+
+        // Après avoir synchronisé les cours, supprimer les événements obsolètes
+        await removeObsoleteEvents(auth, knownCourseIds);
 
     } catch (err) {
         console.error("Erreur lors de la récupération ou de l'ajout des cours :", err);
